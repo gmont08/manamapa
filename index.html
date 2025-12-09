@@ -34,31 +34,38 @@
       display: none !important;
     }
 
-    /* Nube / tarjeta del tooltip */
-    .leaflet-tooltip.manabi-tooltip {
-      background: rgba(255, 255, 255, 0.94);
-      color: #000;
-      padding: 10px 14px;
-      border-radius: 18px;
-      font-size: 12.5px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.45);
-      border: 1px solid #dcdcdc;
+    /* Tarjeta del popup (la nube grande) */
+    .leaflet-popup-content-wrapper {
+      border-radius: 28px !important;
+      padding: 0 !important;
+      background: rgba(255,255,255,0.94) !important;
+      box-shadow: 0 14px 28px rgba(0,0,0,0.55);
+      border: 1px solid rgba(220,220,220,0.9);
+    }
+
+    .leaflet-popup-content {
+      margin: 0 !important;
+      padding: 14px 18px 16px 18px !important;
+      text-align: center;
       font-family: system-ui, -apple-system, BlinkMacSystemFont,
                    "Segoe UI", sans-serif;
-      max-width: 220px;
-      text-align: center;
-      line-height: 1.3;
-      white-space: normal;
     }
 
-    @media (max-width: 700px) {
-      .leaflet-tooltip.manabi-tooltip {
-        font-size: 14px;
-        max-width: 240px;
-      }
+    .titulo-popup {
+      font-size: 22px;
+      font-weight: 800;
+      color: #111;
+      line-height: 1.1;
+      margin-bottom: 6px;
     }
 
-    /* Quitar borde negro/blanco al hacer clic */
+    .subtitulo-popup {
+      font-size: 16px;
+      color: #444;
+      line-height: 1.25;
+    }
+
+    /* Quitar borde negro/blanco al hacer click en el polígono */
     .leaflet-interactive:focus,
     .leaflet-interactive:focus-visible {
       outline: none !important;
@@ -80,49 +87,148 @@
       attributionControl: false
     }).setView([-0.9, -80.3], 8);
 
-    // Fondo negro “vacío”
+    // Fondo "vacío" para que se vea solo Manabí flotando
     L.tileLayer("", {}).addTo(map);
 
-    // --- Utilidades ---
+    // --------- UTILIDADES ---------
 
-    function normalizarNombre(nombre) {
-      return nombre
-        ? nombre.toString().toLowerCase()
-            .normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim()
-        : "";
+    function normalizarNombre(texto) {
+      if (!texto) return "";
+      return texto
+        .toString()
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .trim();
     }
 
-    // Parroquias rurales por cantón (basado en tu Excel)
-    const ruralesManabi = {
-      "24 de mayo": ["bellavista","noboa"],
-      "bolivar": ["membrillo","quiroga"],
-      "chone": ["boyaca","canuto","chibunga","convento","eloy alfaro","ricaurte","san antonio"],
-      "el carmen": ["paraiso (la 14)","san pedro de suma","santa maria","wilfrido loor moreira"],
-      "flavio alfaro": ["san francisco de novillo","zapallo jarry"],
-      "jipijapa": ["el anegado","julcuy","la america","la union","membrillal","pedro pablo gomez","puerto cayo"],
-      "manta": ["san lorenzo","santa marianita"],
-      "montecristi": ["la pila"],
-      "pajan": ["campozano","cascol","guale","lascano"],
-      "pedernales": ["10 de agosto","atahualpa","cojimies"],
-      "pichincha": ["barraganete","san sebastian"],
-      "portoviejo": ["abdon calderon","alajuela","churijos","crucita","pueblo nuevo","rio chico","san placido"],
-      "puerto lopez": ["machalilla","salango"],
-      "san vicente": ["canoa"],
-      "santa ana": ["ayacucho","honorato vasquez","la union","san pablo de pueblo nuevo"],
-      "sucre": ["charapoto","san isidro"],
-      "tosagua": ["angel pedro giler","san jose de bachillero"]
+    // Mapa de parroquias rurales por cantón
+    // (generado a partir de tu archivo Sitios_Manabi)
+    const ruralesPorCanton = {
+      "24 de mayo": [
+        "bellavista",
+        "noboa"
+      ],
+      "bolivar": [
+        "membrillo",
+        "quiroga"
+      ],
+      "chone": [
+        "boyaca",
+        "canuto",
+        "chibunga",
+        "convento",
+        "eloy alfaro",
+        "ricaurte",
+        "san antonio"
+      ],
+      "el carmen": [
+        "paraiso (la 14)",
+        "san pedro de suma",
+        "santa maria",
+        "wilfrido loor moreira"
+      ],
+      "flavio alfaro": [
+        "san francisco de novillo",
+        "zapallo jarry"
+      ],
+      "jipijapa": [
+        "el anegado",
+        "julcuy",
+        "la america",
+        "la union",
+        "membrillal",
+        "pedro pablo gomez",
+        "puerto cayo"
+      ],
+      "manta": [
+        "san lorenzo",
+        "santa marianita"
+      ],
+      "montecristi": [
+        "la pila"
+      ],
+      "pajan": [
+        "campozano",
+        "cascol",
+        "guale",
+        "lascano"
+      ],
+      "pedernales": [
+        "10 de agosto",
+        "atahualpa",
+        "cojimies"
+      ],
+      "pichincha": [
+        "barraganete",
+        "san sebastian"
+      ],
+      "portoviejo": [
+        "abdon calderon",
+        "alajuela",
+        "churijos",
+        "crucita",
+        "pueblo nuevo",
+        "rio chico",
+        "san placido"
+      ],
+      "puerto lopez": [
+        "machalilla",
+        "salango"
+      ],
+      "san vicente": [
+        "canoa"
+      ],
+      "santa ana": [
+        "ayacucho",
+        "honorato vasquez",
+        "la union",
+        "san pablo de pueblo nuevo"
+      ],
+      "sucre": [
+        "charapoto",
+        "san isidro"
+      ],
+      "tosagua": [
+        "angel pedro giler",
+        "san jose de bachillero"
+      ]
     };
 
-    function esParroquiaRural(p) {
-      const c = normalizarNombre(p.CANTON);
-      const pr = normalizarNombre(p.PARROQUIA);
-      return (ruralesManabi[c] || []).includes(pr);
+    // Parroquias URBANAS cuyo nombre NO coincide con el del cantón
+    // (casos especiales como Sucre / Bahía de Caráquez, Bolívar / Calceta, etc.)
+    const urbanasEspeciales = {
+      "sucre": ["bahia de caraquez"],
+      "bolivar": ["calceta"],
+      "24 de mayo": ["sucre"]
+    };
+
+    function esParroquiaRural(props) {
+      const c = normalizarNombre(props.CANTON);
+      const p = normalizarNombre(props.PARROQUIA);
+      const lista = ruralesPorCanton[c] || [];
+      return lista.includes(p);
     }
 
-    // Aquí podrías marcar parroquias visitadas si quieres en el futuro
-    const parroquiasCompletadas = []; // p.ej. ["1308501"]
+    function esParroquiaUrbana(props) {
+      const c = normalizarNombre(props.CANTON);
+      const p = normalizarNombre(props.PARROQUIA);
 
-    // --- Cargar GeoJSON ---
+      if (esParroquiaRural(props)) return false;
+
+      const especiales = urbanasEspeciales[c] || [];
+      if (especiales.includes(p)) return true;
+
+      // Regla general: parroquia urbana si se llama igual que el cantón
+      if (p === c) return true;
+
+      return false;
+    }
+
+    // Aquí podrías marcar parroquias ya visitadas en el futuro:
+    const parroquiasCompletadas = []; // ej: ["ECU_SM_MAN_MNT_SANL_PAR"]
+
+    // --------- CARGA DEL GEOJSON ---------
+
     fetch("parroquias_manabi.geojson")
       .then(res => res.json())
       .then(data => {
@@ -131,7 +237,7 @@
             color: "#555",
             weight: 1,
             fillColor: parroquiasCompletadas.includes(feature.properties.CODIGO)
-                        ? "#c8f7c5"   // verde suave si está “logrado”
+                        ? "#c8f7c5"   // verde suave si está "logrado"
                         : "#f0f0f0",
             fillOpacity: 0.97
           }),
@@ -139,43 +245,37 @@
           onEachFeature: (feature, layer) => {
             const p = feature.properties;
 
-            let contenidoTooltip;
+            let tituloHTML = "";
+            let subtituloHTML = "";
 
             if (esParroquiaRural(p)) {
-              // PARROQUIA RURAL -> Parroquia en grande, cantón abajito
-              contenidoTooltip = `
-                <div style="line-height:1.25;">
-                  <strong style="font-size:14px;">
-                    ${p.PARROQUIA} (P.R.)
-                  </strong><br>
-                  <span style="font-size:11px; opacity:0.8;">
-                    ${p.CANTON}
-                  </span>
-                </div>
-              `;
+              // PARROQUIA RURAL
+              tituloHTML = p.PARROQUIA + " (P.R.)";
+              subtituloHTML = p.CANTON;
+            } else if (esParroquiaUrbana(p)) {
+              // ZONA URBANA
+              tituloHTML = p.CANTON;
+              subtituloHTML = "Zona Urbana";
             } else {
-              // ZONA URBANA -> Cantón en grande, “Zona Urbana” pequeño
-              contenidoTooltip = `
-                <div style="line-height:1.25;">
-                  <strong style="font-size:14px;">
-                    ${p.CANTON}
-                  </strong><br>
-                  <span style="font-size:11px; opacity:0.8;">
-                    Zona Urbana
-                  </span>
-                </div>
-              `;
+              // Caso intermedio: parroquia que no pudimos clasificar bien
+              // La mostramos como parroquia (sin P.R.) + cantón
+              tituloHTML = p.PARROQUIA;
+              subtituloHTML = p.CANTON;
             }
 
-            layer.bindTooltip(contenidoTooltip, {
-              sticky: !isMobile,
-              direction: "auto",
-              opacity: 0.95,
-              offset: [0, -10],
-              className: "manabi-tooltip"
+            const popupHTML = `
+              <div class="titulo-popup">${tituloHTML}</div>
+              <div class="subtitulo-popup">${subtituloHTML}</div>
+            `;
+
+            layer.bindPopup(popupHTML, {
+              closeButton: false,
+              offset: [0, -5],
+              autoPanPaddingTopLeft: [40, 40],
+              autoPanPaddingBottomRight: [40, 40]
             });
 
-            // Efecto hover
+            // Hover: aclarar la zona
             layer.on("mouseover", e => {
               e.target.setStyle({
                 fillColor: "#ffffff",
@@ -194,7 +294,7 @@
           padding: isMobile ? [10, 10] : [35, 35]
         });
 
-        // Sombra 3D suave todo el contorno
+        // Sombra 3D suave al contorno completo
         setTimeout(() => {
           const svg = document.querySelector(".leaflet-overlay-pane svg");
           if (svg) {
