@@ -28,14 +28,25 @@
       height: 100%;
     }
 
-    /* Forzar fondo negro dentro del contenedor */
     .leaflet-container {
       background: #000 !important;
     }
 
-    /* Ocultar créditos de Leaflet */
     .leaflet-control-attribution {
       display: none !important;
+    }
+
+    /* Tooltip estilizado */
+    .manabi-tooltip {
+      background: rgba(255, 255, 255, 0.92);
+      color: #000;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      border: 1px solid #e0e0e0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   sans-serif;
     }
   </style>
 </head>
@@ -48,12 +59,125 @@
   var map = L.map('map', {
     zoomControl: false,
     attributionControl: false
-  }).setView([-0.9, -80.3], 8); // Vista inicial aproximada
+  }).setView([-0.9, -80.3], 8);
 
-  // Parroquias "completadas" (a futuro usaremos Glide para esto)
-  const parroquiasCompletadas = []; // Ejemplo: ["1308501"]
+  // Lista de parroquias completadas (a futuro, desde tu app)
+  const parroquiasCompletadas = []; // Ej: ["1308501"]
 
-  // Cargar GeoJSON desde GitHub Pages
+  // Normalizar texto para comparar (sin tildes, minúsculas)
+  function normalizarNombre(nombre) {
+    if (!nombre) return "";
+    return nombre
+      .toString()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+  }
+
+  // Diccionario construido a partir de tu hoja "Sitios_Manabi"
+  // Claves: nombre del cantón normalizado
+  // Valores: lista de parroquias rurales de ese cantón (también normalizadas)
+  const ruralesManabi = {
+    "24 de mayo": [
+      "bellavista",
+      "noboa"
+    ],
+    "bolivar": [
+      "membrillo",
+      "quiroga"
+    ],
+    "chone": [
+      "boyaca",
+      "canuto",
+      "chibunga",
+      "convento",
+      "eloy alfaro",
+      "ricaurte",
+      "san antonio"
+    ],
+    "el carmen": [
+      "paraiso (la 14)",
+      "san pedro de suma",
+      "santa maria",
+      "wilfrido loor moreira"
+    ],
+    "flavio alfaro": [
+      "san francisco de novillo",
+      "zapallo jarry"
+    ],
+    "jipijapa": [
+      "el anegado",
+      "julcuy",
+      "la america",
+      "la union",
+      "membrillal",
+      "pedro pablo gomez",
+      "puerto cayo"
+    ],
+    "manta": [
+      "san lorenzo",
+      "santa marianita"
+    ],
+    "montecristi": [
+      "la pila"
+    ],
+    "pajan": [
+      "campozano",
+      "cascol",
+      "guale",
+      "lascano"
+    ],
+    "pedernales": [
+      "10 de agosto",
+      "atahualpa",
+      "cojimies"
+    ],
+    "pichincha": [
+      "barraganete",
+      "san sebastian"
+    ],
+    "portoviejo": [
+      "abdon calderon",
+      "alajuela",
+      "churijos",
+      "crucita",
+      "pueblo nuevo",
+      "rio chico",
+      "san placido"
+    ],
+    "puerto lopez": [
+      "machalilla",
+      "salango"
+    ],
+    "san vicente": [
+      "canoa"
+    ],
+    "santa ana": [
+      "ayacucho",
+      "honorato vasquez",
+      "la union",
+      "san pablo de pueblo nuevo"
+    ],
+    "sucre": [
+      "charapoto",
+      "san isidro"
+    ],
+    "tosagua": [
+      "angel pedro giler",
+      "san jose de bachillero"
+    ]
+  };
+
+  // Función: ¿esta parroquia es rural según tu listado?
+  function esParroquiaRural(props) {
+    const cantonNorm    = normalizarNombre(props.CANTON);
+    const parroquiaNorm = normalizarNombre(props.PARROQUIA);
+
+    const rurales = ruralesManabi[cantonNorm] || [];
+    return rurales.includes(parroquiaNorm);
+  }
+
   fetch('parroquias_manabi.geojson')
     .then(r => r.json())
     .then(data => {
@@ -63,15 +187,14 @@
           const id = feature.properties.CODIGO;
 
           let baseStyle = {
-            color: "#555555",       // líneas internas (parroquias)
+            color: "#555555",       // líneas internas
             weight: 1,
-            fillColor: "#f5f5f5",    // base color casi blanco
+            fillColor: "#f5f5f5",   // gris muy claro
             fillOpacity: 0.95
           };
 
-          // Si está completada, se colorea diferente
           if (parroquiasCompletadas.includes(id)) {
-            baseStyle.fillColor = "#c8f7c5"; // verde suave
+            baseStyle.fillColor = "#c8f7c5"; // verde suave para "logrado"
           }
 
           return baseStyle;
@@ -80,11 +203,22 @@
         onEachFeature: function (feature, layer) {
           let p = feature.properties;
 
-          // Popup simple con información básica
-          layer.bindPopup(
-            `<b>${p.PARROQUIA}</b><br>
-             Cantón: ${p.CANTON}<br>
-             Provincia: ${p.PROVINCIA}`
+          let etiqueta;
+          if (esParroquiaRural(p)) {
+            etiqueta = `${p.CANTON} – Parroquia Rural ${p.PARROQUIA}`;
+          } else {
+            etiqueta = `${p.CANTON} – Cantón`;
+          }
+
+          // Tooltip estilizado
+          layer.bindTooltip(
+            `<div class="manabi-tooltip">${etiqueta}</div>`,
+            {
+              sticky: true,
+              direction: "top",
+              opacity: 0.95,
+              className: "manabi-tooltip"
+            }
           );
 
           // Hover: iluminar
@@ -102,12 +236,12 @@
 
       }).addTo(map);
 
-      // Enfocar el mapa sobre Manabí
+      // Enfocar Manabí
       map.fitBounds(manabiLayer.getBounds(), {
         padding: [40, 40]
       });
 
-      // Aplicar efecto de sombra tipo "capa"
+      // Sombra tipo "capa"
       setTimeout(function () {
         var svg = document.querySelector('.leaflet-overlay-pane svg');
         if (svg) {
