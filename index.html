@@ -6,10 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet/dist/leaflet.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -19,37 +16,37 @@
       margin: 0;
       padding: 0;
       height: 100%;
-      background: #000; /* Fondo negro */
+      background: #000;
       overflow: hidden;
     }
 
-    #map {
-      width: 100%;
-      height: 100%;
-    }
+    #map { width: 100%; height: 100%; }
 
-    .leaflet-container {
-      background: #000 !important;
-    }
+    .leaflet-container { background: #000 !important; }
 
-    .leaflet-control-attribution {
-      display: none !important;
-    }
+    .leaflet-control-attribution { display: none !important; }
 
     /* Tooltip estilizado */
     .leaflet-tooltip.manabi-tooltip {
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.93);
       color: #000;
-      padding: 6px 10px;
+      padding: 5px 8px;
       border-radius: 6px;
-      font-size: 13px;
+      font-size: 12.5px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-      border: 1px solid #e0e0e0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-                   sans-serif;
-      max-width: 260px;        /* evita recuadros gigantes */
-      white-space: normal;     /* permite salto de línea */
-      text-align: center;      /* se ve más bonito en móvil */
+      border: 1px solid #dcdcdc;
+      font-family: system-ui, sans-serif;
+      max-width: 180px;
+      white-space: normal;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    @media (max-width: 700px) {
+      .leaflet-tooltip.manabi-tooltip {
+        font-size: 14px;
+        max-width: 220px;
+      }
     }
   </style>
 </head>
@@ -58,127 +55,46 @@
 <div id="map"></div>
 
 <script>
-  // Detectar si es pantalla "chica" (móvil)
   const isMobile = window.innerWidth < 700;
 
   var map = L.map('map', {
-    zoomControl: true,          // botones + / -
+    zoomControl: true,
     attributionControl: false
   }).setView([-0.9, -80.3], 8);
 
-  // Aquí más adelante podrás marcar parroquias "logradas"
-  const parroquiasCompletadas = []; // Ej: ["1308501"]
+  const parroquiasCompletadas = [];
 
-  // Normalizar texto para comparar (sin tildes, en minúsculas)
   function normalizarNombre(nombre) {
-    if (!nombre) return "";
     return nombre
-      .toString()
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim();
+      ? nombre.toString().toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim()
+      : "";
   }
 
-  // Diccionario basado en tu estructura "Sitios_Manabi"
-  // Cantón normalizado -> lista de parroquias rurales normalizadas
   const ruralesManabi = {
-    "24 de mayo": [
-      "bellavista",
-      "noboa"
-    ],
-    "bolivar": [
-      "membrillo",
-      "quiroga"
-    ],
-    "chone": [
-      "boyaca",
-      "canuto",
-      "chibunga",
-      "convento",
-      "eloy alfaro",
-      "ricaurte",
-      "san antonio"
-    ],
-    "el carmen": [
-      "paraiso (la 14)",
-      "san pedro de suma",
-      "santa maria",
-      "wilfrido loor moreira"
-    ],
-    "flavio alfaro": [
-      "san francisco de novillo",
-      "zapallo jarry"
-    ],
-    "jipijapa": [
-      "el anegado",
-      "julcuy",
-      "la america",
-      "la union",
-      "membrillal",
-      "pedro pablo gomez",
-      "puerto cayo"
-    ],
-    "manta": [
-      "san lorenzo",
-      "santa marianita"
-    ],
-    "montecristi": [
-      "la pila"
-    ],
-    "pajan": [
-      "campozano",
-      "cascol",
-      "guale",
-      "lascano"
-    ],
-    "pedernales": [
-      "10 de agosto",
-      "atahualpa",
-      "cojimies"
-    ],
-    "pichincha": [
-      "barraganete",
-      "san sebastian"
-    ],
-    "portoviejo": [
-      "abdon calderon",
-      "alajuela",
-      "churijos",
-      "crucita",
-      "pueblo nuevo",
-      "rio chico",
-      "san placido"
-    ],
-    "puerto lopez": [
-      "machalilla",
-      "salango"
-    ],
-    "san vicente": [
-      "canoa"
-    ],
-    "santa ana": [
-      "ayacucho",
-      "honorato vasquez",
-      "la union",
-      "san pablo de pueblo nuevo"
-    ],
-    "sucre": [
-      "charapoto",
-      "san isidro"
-    ],
-    "tosagua": [
-      "angel pedro giler",
-      "san jose de bachillero"
-    ]
+    "24 de mayo": ["bellavista","noboa"],
+    "bolivar": ["membrillo","quiroga"],
+    "chone": ["boyaca","canuto","chibunga","convento","eloy alfaro","ricaurte","san antonio"],
+    "el carmen": ["paraiso (la 14)","san pedro de suma","santa maria","wilfrido loor moreira"],
+    "flavio alfaro": ["san francisco de novillo","zapallo jarry"],
+    "jipijapa": ["el anegado","julcuy","la america","la union","membrillal","pedro pablo gomez","puerto cayo"],
+    "manta": ["san lorenzo","santa marianita"],
+    "montecristi": ["la pila"],
+    "pajan": ["campozano","cascol","guale","lascano"],
+    "pedernales": ["10 de agosto","atahualpa","cojimies"],
+    "pichincha": ["barraganete","san sebastian"],
+    "portoviejo": ["abdon calderon","alajuela","churijos","crucita","pueblo nuevo","rio chico","san placido"],
+    "puerto lopez": ["machalilla","salango"],
+    "san vicente": ["canoa"],
+    "santa ana": ["ayacucho","honorato vasquez","la union","san pablo de pueblo nuevo"],
+    "sucre": ["charapoto","san isidro"],
+    "tosagua": ["angel pedro giler","san jose de bachillero"]
   };
 
-  // ¿Esta parroquia es rural según tu listado?
-  function esParroquiaRural(props) {
-    const cantonNorm    = normalizarNombre(props.CANTON);
-    const parroquiaNorm = normalizarNombre(props.PARROQUIA);
-    const rurales = ruralesManabi[cantonNorm] || [];
-    return rurales.includes(parroquiaNorm);
+  function esParroquiaRural(p) {
+    const c = normalizarNombre(p.CANTON);
+    const pr = normalizarNombre(p.PARROQUIA);
+    return (ruralesManabi[c] || []).includes(pr);
   }
 
   fetch('parroquias_manabi.geojson')
@@ -186,77 +102,56 @@
     .then(data => {
 
       var manabiLayer = L.geoJSON(data, {
-        style: function (feature) {
-          const id = feature.properties.CODIGO;
-
-          let baseStyle = {
-            color: "#555555",       // líneas internas
-            weight: 1,
-            fillColor: "#f5f5f5",   // gris muy claro
-            fillOpacity: 0.95
-          };
-
-          if (parroquiasCompletadas.includes(id)) {
-            baseStyle.fillColor = "#c8f7c5"; // verde suave para "logrado"
-          }
-
-          return baseStyle;
-        },
+        style: f => ({
+          color: "#555",
+          weight: 1,
+          fillColor: parroquiasCompletadas.includes(f.properties.CODIGO)
+                     ? "#c8f7c5" : "#f5f5f5",
+          fillOpacity: 0.95
+        }),
 
         onEachFeature: function (feature, layer) {
-          let p = feature.properties;
 
+          let p = feature.properties;
           let etiqueta;
+
           if (esParroquiaRural(p)) {
-            etiqueta = `${p.CANTON} – Parroquia Rural ${p.PARROQUIA}`;
+            etiqueta = `${p.CANTON} – ${p.PARROQUIA} (P.R.)`;
           } else {
-            etiqueta = `${p.CANTON} – Cantón`;
+            // URBANA = CANTÓN / ZONA URBANA
+            etiqueta = `${p.CANTON}\nZona Urbana`;
           }
 
-          // Tooltip estilizado
           layer.bindTooltip(
-            `<div>${etiqueta}</div>`,
+            `<div>${etiqueta.replace("\n", "<br>")}</div>`,
             {
-              sticky: !isMobile,       // en desktop sigue al mouse
+              sticky: !isMobile,
               direction: "auto",
               opacity: 0.95,
-              offset: [0, -10],
+              offset: [0, -8],
               className: "manabi-tooltip"
             }
           );
 
-          // Hover: iluminar parroquia
-          layer.on("mouseover", function (e) {
-            e.target.setStyle({
-              fillOpacity: 1,
-              fillColor: "#ffffff"
-            });
+          layer.on("mouseover", e => {
+            e.target.setStyle({ fillOpacity: 1, fillColor: "#ffffff" });
           });
 
-          layer.on("mouseout", function (e) {
+          layer.on("mouseout", e => {
             manabiLayer.resetStyle(e.target);
           });
         }
 
       }).addTo(map);
 
-      // Ajustar zoom según tamaño de pantalla
-      const bounds = manabiLayer.getBounds();
-      map.fitBounds(bounds, {
-        padding: isMobile ? [10, 10] : [40, 40]
+      map.fitBounds(manabiLayer.getBounds(), {
+        padding: isMobile ? [10, 10] : [35, 35]
       });
 
-      // Sombra tipo "capa" 3D
-      setTimeout(function () {
-        var svg = document.querySelector('.leaflet-overlay-pane svg');
-        if (svg) {
-          svg.style.filter = 'drop-shadow(0px 12px 14px rgba(0,0,0,0.85))';
-        }
+      setTimeout(() => {
+        const svg = document.querySelector('.leaflet-overlay-pane svg');
+        if (svg) svg.style.filter = 'drop-shadow(0px 12px 14px rgba(0,0,0,0.85))';
       }, 300);
-
-    })
-    .catch(err => {
-      console.error("Error cargando el GeoJSON:", err);
     });
 </script>
 
