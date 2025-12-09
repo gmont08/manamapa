@@ -79,229 +79,113 @@
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <script>
-    const isMobile = window.innerWidth < 700;
+<script>
+// Función para limpiar y formatear nombres
+function formatearNombreParroquia(nombre) {
+    nombre = nombre.trim();
 
-    const map = L.map("map", {
-      zoomControl: true,
-      attributionControl: false
-    }).setView([-0.9, -80.3], 8);
-
-    // Fondo "vacío" para que se vea solo Manabí flotando
-    L.tileLayer("", {}).addTo(map);
-
-    // --------- UTILIDADES ---------
-
-    function normalizarNombre(texto) {
-      if (!texto) return "";
-      return texto
-        .toString()
-        .toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .trim();
+    // Regla especial para Puerto de Cayo → Pto. Cayo
+    if (nombre.toLowerCase() === "puerto de cayo") {
+        return "Pto. Cayo";
     }
 
-    // Mapa de parroquias rurales por cantón
-    // (generado a partir de tu archivo Sitios_Manabi)
-    const ruralesPorCanton = {
-      "24 de mayo": [
-        "bellavista",
-        "noboa"
-      ],
-      "bolivar": [
-        "membrillo",
-        "quiroga"
-      ],
-      "chone": [
-        "boyaca",
-        "canuto",
-        "chibunga",
-        "convento",
-        "eloy alfaro",
-        "ricaurte",
-        "san antonio"
-      ],
-      "el carmen": [
-        "paraiso (la 14)",
-        "san pedro de suma",
-        "santa maria",
-        "wilfrido loor moreira"
-      ],
-      "flavio alfaro": [
-        "san francisco de novillo",
-        "zapallo jarry"
-      ],
-      "jipijapa": [
-        "el anegado",
-        "julcuy",
-        "la america",
-        "la union",
-        "membrillal",
-        "pedro pablo gomez",
-        "puerto cayo"
-      ],
-      "manta": [
-        "san lorenzo",
-        "santa marianita"
-      ],
-      "montecristi": [
-        "la pila"
-      ],
-      "pajan": [
-        "campozano",
-        "cascol",
-        "guale",
-        "lascano"
-      ],
-      "pedernales": [
-        "10 de agosto",
-        "atahualpa",
-        "cojimies"
-      ],
-      "pichincha": [
-        "barraganete",
-        "san sebastian"
-      ],
-      "portoviejo": [
-        "abdon calderon",
-        "alajuela",
-        "churijos",
-        "crucita",
-        "pueblo nuevo",
-        "rio chico",
-        "san placido"
-      ],
-      "puerto lopez": [
-        "machalilla",
-        "salango"
-      ],
-      "san vicente": [
-        "canoa"
-      ],
-      "santa ana": [
-        "ayacucho",
-        "honorato vasquez",
-        "la union",
-        "san pablo de pueblo nuevo"
-      ],
-      "sucre": [
-        "charapoto",
-        "san isidro"
-      ],
-      "tosagua": [
-        "angel pedro giler",
-        "san jose de bachillero"
-      ]
-    };
+    // El Anegado ya está correcto, solo quitamos textos innecesarios
+    nombre = nombre.replace(/\(.*?\)/g, "").trim();
 
-    // Parroquias URBANAS cuyo nombre NO coincide con el del cantón
-    // (casos especiales como Sucre / Bahía de Caráquez, Bolívar / Calceta, etc.)
-    const urbanasEspeciales = {
-      "sucre": ["bahia de caraquez"],
-      "bolivar": ["calceta"],
-      "24 de mayo": ["sucre"]
-    };
+    return nombre;
+}
 
-    function esParroquiaRural(props) {
-      const c = normalizarNombre(props.CANTON);
-      const p = normalizarNombre(props.PARROQUIA);
-      const lista = ruralesPorCanton[c] || [];
-      return lista.includes(p);
-    }
+// Determinar si es parroquia rural
+function esParroquiaRural(props) {
+    const tipo = props.DPA_DESPAR?.toLowerCase() || "";
+    return tipo.includes("cab en") || tipo.includes("parroquia");
+}
 
-    function esParroquiaUrbana(props) {
-      const c = normalizarNombre(props.CANTON);
-      const p = normalizarNombre(props.PARROQUIA);
+// Estilo general del mapa
+const map = L.map("map", {
+    zoomControl: false,
+    attributionControl: false,
+    dragging: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    boxZoom: false,
+    keyboard: false,
+}).setView([-1.2, -80.4], 8);
 
-      if (esParroquiaRural(props)) return false;
-
-      const especiales = urbanasEspeciales[c] || [];
-      if (especiales.includes(p)) return true;
-
-      // Regla general: parroquia urbana si se llama igual que el cantón
-      if (p === c) return true;
-
-      return false;
-    }
-
-    // Aquí podrías marcar parroquias ya visitadas en el futuro:
-    const parroquiasCompletadas = []; // ej: ["ECU_SM_MAN_MNT_SANL_PAR"]
-
-    // --------- CARGA DEL GEOJSON ---------
-
-    fetch("parroquias_manabi.geojson")
-      .then(res => res.json())
-      .then(data => {
-        const manabiLayer = L.geoJSON(data, {
-          style: feature => ({
-            color: "#555",
-            weight: 1,
-            fillColor: parroquiasCompletadas.includes(feature.properties.CODIGO)
-                        ? "#c8f7c5"   // verde suave si está "logrado"
-                        : "#f0f0f0",
-            fillOpacity: 0.97
-          }),
-
-          onEachFeature: (feature, layer) => {
-            const p = feature.properties;
-
-            let tituloHTML = "";
-            let subtituloHTML = "";
-
-            if (esParroquiaRural(p)) {
-              // PARROQUIA RURAL
-              tituloHTML = p.PARROQUIA + " (P.R.)";
-              subtituloHTML = p.CANTON;
-            } else if (esParroquiaUrbana(p)) {
-              // ZONA URBANA
-              tituloHTML = p.CANTON;
-              subtituloHTML = "Zona Urbana";
-            } else {
-              // Caso intermedio: parroquia que no pudimos clasificar bien
-              // La mostramos como parroquia (sin P.R.) + cantón
-              tituloHTML = p.PARROQUIA;
-              subtituloHTML = p.CANTON;
-            }
-
-            const popupHTML = `
-              <div class="titulo-popup">${tituloHTML}</div>
-              <div class="subtitulo-popup">${subtituloHTML}</div>
-            `;
-
-            layer.bindPopup(popupHTML, {
-              closeButton: false,
-              offset: [0, -5],
-              autoPanPaddingTopLeft: [40, 40],
-              autoPanPaddingBottomRight: [40, 40]
-            });
-
-            // Hover: aclarar la zona
-            layer.on("mouseover", e => {
-              e.target.setStyle({
-                fillColor: "#ffffff",
+// Cargar geojson
+fetch("parroquias_manabi.geojson")
+    .then(res => res.json())
+    .then(data => {
+        L.geoJSON(data, {
+            style: {
+                color: "#000",
+                weight: 1,
+                fillColor: "#e8e8e8",
                 fillOpacity: 1
-              });
-            });
+            },
+            onEachFeature: (feature, layer) => {
+                const props = feature.properties;
+                const canton = props.DPA_DESCAN;
+                let parroquia = props.DPA_DESPAR || "";
 
-            layer.on("mouseout", e => {
-              manabiLayer.resetStyle(e.target);
-            });
-          }
+                let titulo = "";
+                let subtitulo = "";
+
+                if (esParroquiaRural(props)) {
+                    // Parroquia Rural
+                    const nombreLimpio = formatearNombreParroquia(parroquia);
+                    titulo = `${nombreLimpio} (P.R.)`;
+                    subtitulo = `${canton}`;
+                } else {
+                    // Zona urbana
+                    titulo = `${canton}`;
+                    subtitulo = `Zona Urbana`;
+                }
+
+                const popupContent = `
+                    <div style="
+                        padding: 18px;
+                        background: rgba(255,255,255,0.9);
+                        backdrop-filter: blur(6px);
+                        border-radius: 30px;
+                        border: 1px solid rgba(255,255,255,0.4);
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+                        text-align: center;
+                        font-family: 'Arial';
+                    ">
+                        <div style="
+                            font-size: 28px;
+                            font-weight: 900;
+                            margin-bottom: 6px;
+                        ">
+                            ${titulo}
+                        </div>
+                        <div style="
+                            font-size: 22px;
+                            opacity: 0.8;
+                            font-weight: 500;
+                        ">
+                            ${subtitulo}
+                        </div>
+                    </div>
+                `;
+
+                layer.bindPopup(popupContent, {
+                    className: "custom-popup",
+                    closeButton: false
+                });
+
+                // Resalta al pulsar
+                layer.on("click", function () {
+                    this.setStyle({ fillColor: "#cccccc" });
+                    setTimeout(() => {
+                        this.setStyle({ fillColor: "#e8e8e8" });
+                    }, 600);
+                });
+            }
         }).addTo(map);
-
-        // Centrar el mapa a Manabí
-        map.fitBounds(manabiLayer.getBounds(), {
-          padding: isMobile ? [10, 10] : [35, 35]
-        });
-
-        // Sombra 3D suave al contorno completo
-        setTimeout(() => {
-          const svg = document.querySelector(".leaflet-overlay-pane svg");
-          if (svg) {
-            svg.style.filter = "drop-shadow(0px 12px 14px rgba(0,0,0,0.85))";
-          }
-        }, 300);
-      });
-  </script>
+    });
+</script>
 </body>
 </html>
+
