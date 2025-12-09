@@ -37,7 +37,7 @@
     }
 
     /* Tooltip estilizado */
-    .manabi-tooltip {
+    .leaflet-tooltip.manabi-tooltip {
       background: rgba(255, 255, 255, 0.92);
       color: #000;
       padding: 6px 10px;
@@ -47,6 +47,9 @@
       border: 1px solid #e0e0e0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
                    sans-serif;
+      max-width: 260px;        /* evita recuadros gigantes */
+      white-space: normal;     /* permite salto de línea */
+      text-align: center;      /* se ve más bonito en móvil */
     }
   </style>
 </head>
@@ -55,16 +58,18 @@
 <div id="map"></div>
 
 <script>
-  // Crear mapa sin capa base
+  // Detectar si es pantalla "chica" (móvil)
+  const isMobile = window.innerWidth < 700;
+
   var map = L.map('map', {
-    zoomControl: false,
+    zoomControl: true,          // botones + / -
     attributionControl: false
   }).setView([-0.9, -80.3], 8);
 
-  // Lista de parroquias completadas (a futuro, desde tu app)
+  // Aquí más adelante podrás marcar parroquias "logradas"
   const parroquiasCompletadas = []; // Ej: ["1308501"]
 
-  // Normalizar texto para comparar (sin tildes, minúsculas)
+  // Normalizar texto para comparar (sin tildes, en minúsculas)
   function normalizarNombre(nombre) {
     if (!nombre) return "";
     return nombre
@@ -75,9 +80,8 @@
       .trim();
   }
 
-  // Diccionario construido a partir de tu hoja "Sitios_Manabi"
-  // Claves: nombre del cantón normalizado
-  // Valores: lista de parroquias rurales de ese cantón (también normalizadas)
+  // Diccionario basado en tu estructura "Sitios_Manabi"
+  // Cantón normalizado -> lista de parroquias rurales normalizadas
   const ruralesManabi = {
     "24 de mayo": [
       "bellavista",
@@ -169,11 +173,10 @@
     ]
   };
 
-  // Función: ¿esta parroquia es rural según tu listado?
+  // ¿Esta parroquia es rural según tu listado?
   function esParroquiaRural(props) {
     const cantonNorm    = normalizarNombre(props.CANTON);
     const parroquiaNorm = normalizarNombre(props.PARROQUIA);
-
     const rurales = ruralesManabi[cantonNorm] || [];
     return rurales.includes(parroquiaNorm);
   }
@@ -212,16 +215,17 @@
 
           // Tooltip estilizado
           layer.bindTooltip(
-            `<div class="manabi-tooltip">${etiqueta}</div>`,
+            `<div>${etiqueta}</div>`,
             {
-              sticky: true,
-              direction: "top",
+              sticky: !isMobile,       // en desktop sigue al mouse
+              direction: "auto",
               opacity: 0.95,
+              offset: [0, -10],
               className: "manabi-tooltip"
             }
           );
 
-          // Hover: iluminar
+          // Hover: iluminar parroquia
           layer.on("mouseover", function (e) {
             e.target.setStyle({
               fillOpacity: 1,
@@ -236,12 +240,13 @@
 
       }).addTo(map);
 
-      // Enfocar Manabí
-      map.fitBounds(manabiLayer.getBounds(), {
-        padding: [40, 40]
+      // Ajustar zoom según tamaño de pantalla
+      const bounds = manabiLayer.getBounds();
+      map.fitBounds(bounds, {
+        padding: isMobile ? [10, 10] : [40, 40]
       });
 
-      // Sombra tipo "capa"
+      // Sombra tipo "capa" 3D
       setTimeout(function () {
         var svg = document.querySelector('.leaflet-overlay-pane svg');
         if (svg) {
