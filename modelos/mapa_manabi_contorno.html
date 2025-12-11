@@ -52,23 +52,32 @@
     .then(r => r.json())
     .then(data => {
 
-      // Unimos todos los polígonos en uno solo (contorno de la provincia)
-      let features = data.features;
-      let unionGeom = features[0];
+      // 1) Nos quedamos SOLO con polígonos y multipolígonos
+      let polygonFeatures = data.features.filter(f =>
+        f.geometry &&
+        (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')
+      );
 
-      for (let i = 1; i < features.length; i++) {
+      if (polygonFeatures.length === 0) {
+        console.error("No se encontraron polígonos en el GeoJSON");
+        return;
+      }
+
+      // 2) Unimos todos los polígonos en uno solo (contorno de la provincia)
+      let unionGeom = polygonFeatures[0];
+      for (let i = 1; i < polygonFeatures.length; i++) {
         try {
-          unionGeom = turf.union(unionGeom, features[i]);
+          unionGeom = turf.union(unionGeom, polygonFeatures[i]);
         } catch (e) {
           console.warn("Error uniendo features:", e);
         }
       }
 
-      // Dibujamos SOLO el contorno resultante (sin divisiones internas)
+      // 3) Dibujamos SOLO el contorno resultante (sin divisiones internas, sin puntos)
       var manabiOutline = L.geoJSON(unionGeom, {
         style: f => ({
           color: "#111",      // color del borde
-          weight: 2,          // grosor del borde
+          weight: 2.3,        // grosor del borde
           fillColor: "transparent",
           fillOpacity: 0      // sin relleno interno
         })
@@ -82,3 +91,4 @@
 
 </body>
 </html>
+
