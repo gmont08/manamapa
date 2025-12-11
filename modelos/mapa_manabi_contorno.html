@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mapa Manabí – Solo contorno</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Turf.js para unir todos los polígonos en uno solo -->
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: transparent !important;
+      overflow: hidden;
+    }
+
+    #map { width: 100%; height: 100%; }
+
+    .leaflet-container { 
+      background: transparent !important;
+    }
+
+    .leaflet-control-attribution { 
+      display: none !important; 
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<script>
+  const isMobile = window.innerWidth < 700;
+
+  var map = L.map('map', {
+    zoomControl: true,
+    attributionControl: false
+  }).setView([-0.9, -80.3], 8);
+
+  // Cargamos el mismo GeoJSON de siempre (todas las parroquias)
+  fetch('../parroquias_manabi.geojson')
+    .then(r => r.json())
+    .then(data => {
+
+      // Unimos todos los polígonos en uno solo (contorno de la provincia)
+      let features = data.features;
+      let unionGeom = features[0];
+
+      for (let i = 1; i < features.length; i++) {
+        try {
+          unionGeom = turf.union(unionGeom, features[i]);
+        } catch (e) {
+          console.warn("Error uniendo features:", e);
+        }
+      }
+
+      // Dibujamos SOLO el contorno resultante (sin divisiones internas)
+      var manabiOutline = L.geoJSON(unionGeom, {
+        style: f => ({
+          color: "#111",      // color del borde
+          weight: 2,          // grosor del borde
+          fillColor: "transparent",
+          fillOpacity: 0      // sin relleno interno
+        })
+      }).addTo(map);
+
+      map.fitBounds(manabiOutline.getBounds(), {
+        padding: isMobile ? [10, 10] : [35, 35]
+      });
+    });
+</script>
+
+</body>
+</html>
