@@ -93,7 +93,7 @@
     return (ruralesManabi[c] || []).includes(pr);
   }
 
-  fetch('parroquias_manabi.geojson')
+  fetch('../parroquias_manabi.geojson')
     .then(r => r.json())
     .then(data => {
 
@@ -163,3 +163,4 @@
 
 </body>
 </html>
+
