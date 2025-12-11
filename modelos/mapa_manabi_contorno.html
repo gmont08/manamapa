@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Mapa Manabí – Solo contorno</title>
+  <title>Mapa Manabí – Solo contorno (Turf)</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -10,6 +10,9 @@
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Turf.js para unir las parroquias en un solo polígono -->
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 
   <style>
     html, body {
@@ -39,22 +42,40 @@
 <script>
   const isMobile = window.innerWidth < 700;
 
+  // Crear mapa vacío
   const map = L.map('map', {
     zoomControl: true,
     attributionControl: false
   }).setView([-0.9, -80.3], 8);
 
-  // 👉 USAMOS LA URL COMPLETA DEL GEOJSON
-  fetch('https://gmont08.github.io/manamapa/manabi_outline.geojson')
+  // 1) Cargar el GeoJSON original de parroquias
+  fetch('../parroquias_manabi.geojson')
     .then(r => {
       if (!r.ok) {
-        throw new Error('Error HTTP al cargar GeoJSON: ' + r.status);
+        throw new Error('Error HTTP al cargar parroquias_manabi.geojson: ' + r.status);
       }
       return r.json();
     })
     .then(data => {
-      // Dibujamos el contorno y lo guardamos en una variable
-      const outlineLayer = L.geoJSON(data, {
+      // 2) Unir todas las parroquias en un solo polígono usando Turf
+      let unionFeature = null;
+
+      data.features.forEach((feat, i) => {
+        if (!unionFeature) {
+          unionFeature = feat; // la primera
+        } else {
+          // unir la geometría acumulada con la siguiente
+          unionFeature = turf.union(unionFeature, feat);
+        }
+      });
+
+      const contornoFC = {
+        type: "FeatureCollection",
+        features: [unionFeature]
+      };
+
+      // 3) Dibujar solo el contorno
+      const outlineLayer = L.geoJSON(contornoFC, {
         style: {
           color: "#000",
           weight: 2.5,
@@ -62,14 +83,14 @@
         }
       }).addTo(map);
 
-      // Ajustamos el zoom al contorno
+      // 4) Ajustar el zoom al contorno
       map.fitBounds(outlineLayer.getBounds(), {
         padding: isMobile ? [10, 10] : [35, 35]
       });
     })
     .catch(err => {
       console.error(err);
-      alert('Hubo un problema cargando el archivo manabi_outline.geojson.\nRevisa la consola.');
+      alert('Hubo un problema generando el contorno desde parroquias_manabi.geojson.\nRevisa la consola del navegador.');
     });
 </script>
 
