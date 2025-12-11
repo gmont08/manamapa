@@ -49,40 +49,16 @@
   }).setView([-0.9, -80.3], 8);
 
   // Cargar el GeoJSON original (todas las parroquias)
-  fetch('../parroquias_manabi.geojson')
+  fetch('../manabi_outline.geojson')
     .then(r => r.json())
     .then(data => {
-
-      // 1) Nos quedamos SOLO con polígonos y multipolígonos
-      const polygonFeatures = data.features.filter(f =>
-        f.geometry &&
-        (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')
-      );
-
-      if (polygonFeatures.length === 0) {
-        console.error("No se encontraron polígonos en el GeoJSON");
-        return;
-      }
-
-      // 2) Unimos todos los polígonos en un solo Feature
-      let unionFeature = polygonFeatures[0];
-      for (let i = 1; i < polygonFeatures.length; i++) {
-        try {
-          unionFeature = turf.union(unionFeature, polygonFeatures[i]);
-        } catch (e) {
-          console.warn("Error uniendo features:", e);
-        }
-      }
-
-      // 3) Dibujamos SOLO el contorno resultante
-      const outlineLayer = L.geoJSON(unionFeature, {
-        style: {
-          color: "#111",       // color del borde
-          weight: 2.3,         // grosor del borde
-          fillColor: "transparent",
-          fillOpacity: 0       // sin relleno interno
-        }
-      }).addTo(map);
+        L.geoJSON(data, {
+            style: {
+                color: "#000",
+                weight: 2,
+                fillOpacity: 0
+            }
+        }).addTo(map);
 
       // 4) Ajustamos el zoom al contorno
       map.fitBounds(outlineLayer.getBounds(), {
@@ -93,3 +69,4 @@
 
 </body>
 </html>
+
