@@ -11,9 +11,6 @@
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  <!-- Turf.js para unir todos los polígonos en uno solo -->
-  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
-
   <style>
     html, body {
       margin: 0;
@@ -48,19 +45,21 @@
     attributionControl: false
   }).setView([-0.9, -80.3], 8);
 
-  // Cargar el GeoJSON original (todas las parroquias)
+  // Cargar el contorno limpio
   fetch('../manabi_outline.geojson')
     .then(r => r.json())
     .then(data => {
-        L.geoJSON(data, {
-            style: {
-                color: "#000",
-                weight: 2,
-                fillOpacity: 0
-            }
-        }).addTo(map);
 
-      // 4) Ajustamos el zoom al contorno
+      // AGREGAR EL CONTORNO Y GUARDARLO EN UNA VARIABLE
+      let outlineLayer = L.geoJSON(data, {
+        style: {
+          color: "#000",
+          weight: 2.5,
+          fillOpacity: 0
+        }
+      }).addTo(map);
+
+      // Ajustar el zoom al contorno
       map.fitBounds(outlineLayer.getBounds(), {
         padding: isMobile ? [10, 10] : [35, 35]
       });
@@ -69,4 +68,3 @@
 
 </body>
 </html>
-
