@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Mapa Manabí – Solo contorno</title>
+  <title>Mapa Manabí – Solo contorno limpio</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -42,18 +42,19 @@
 <script>
   const isMobile = window.innerWidth < 700;
 
+  // Crear el mapa vacío
   var map = L.map('map', {
     zoomControl: true,
     attributionControl: false
   }).setView([-0.9, -80.3], 8);
 
-  // Cargamos el mismo GeoJSON de siempre (todas las parroquias)
+  // Cargar el GeoJSON original (todas las parroquias)
   fetch('../parroquias_manabi.geojson')
     .then(r => r.json())
     .then(data => {
 
       // 1) Nos quedamos SOLO con polígonos y multipolígonos
-      let polygonFeatures = data.features.filter(f =>
+      const polygonFeatures = data.features.filter(f =>
         f.geometry &&
         (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')
       );
@@ -63,27 +64,28 @@
         return;
       }
 
-      // 2) Unimos todos los polígonos en uno solo (contorno de la provincia)
-      let unionGeom = polygonFeatures[0];
+      // 2) Unimos todos los polígonos en un solo Feature
+      let unionFeature = polygonFeatures[0];
       for (let i = 1; i < polygonFeatures.length; i++) {
         try {
-          unionGeom = turf.union(unionGeom, polygonFeatures[i]);
+          unionFeature = turf.union(unionFeature, polygonFeatures[i]);
         } catch (e) {
           console.warn("Error uniendo features:", e);
         }
       }
 
-      // 3) Dibujamos SOLO el contorno resultante (sin divisiones internas, sin puntos)
-      var manabiOutline = L.geoJSON(unionGeom, {
-        style: f => ({
-          color: "#111",      // color del borde
-          weight: 2.3,        // grosor del borde
+      // 3) Dibujamos SOLO el contorno resultante
+      const outlineLayer = L.geoJSON(unionFeature, {
+        style: {
+          color: "#111",       // color del borde
+          weight: 2.3,         // grosor del borde
           fillColor: "transparent",
-          fillOpacity: 0      // sin relleno interno
-        })
+          fillOpacity: 0       // sin relleno interno
+        }
       }).addTo(map);
 
-      map.fitBounds(manabiOutline.getBounds(), {
+      // 4) Ajustamos el zoom al contorno
+      map.fitBounds(outlineLayer.getBounds(), {
         padding: isMobile ? [10, 10] : [35, 35]
       });
     });
@@ -91,4 +93,3 @@
 
 </body>
 </html>
-
